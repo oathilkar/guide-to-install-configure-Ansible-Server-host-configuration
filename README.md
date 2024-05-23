@@ -3,7 +3,7 @@
 ### Summary
 
 - **Installation**: Install Ansible on your control node.
-- **SSH Key-Based Authentication**: Set up passwordless SSH between your control node and managed hosts.
+- **SSH Key-Based Authentication**: Set up passwordless/withPassword SSH between your control node and managed hosts.
 - **Inventory**: Configure the Ansible inventory file to list your managed hosts.
 - **Configuration File (Optional)**: Customize the Ansible configuration file according to your preferences.
 - **Testing**: Test Ansible by running an ad-hoc command to verify connectivity.
@@ -95,51 +95,99 @@ Ansible manages remote hosts using SSH. To enable passwordless SSH access from t
 
    Ensure that you can SSH to the managed host without entering a password.
 
-### Step 3: Configure Ansible Inventory
+### Step 3 : Configure Ansible Inventory
 
-The inventory file (`hosts.ini`) defines the managed hosts that Ansible will control. Create an inventory file and add your managed hosts:
-
-```bash
-sudo nano /etc/ansible/hosts
-```
-
-Add the following lines to the file:
+The inventory file is where you define your managed hosts. Create an inventory file (e.g., `hosts.ini`) and add the IP addresses or hostnames of your managed hosts:
 
 ```ini
-[webservers]
+[web_servers]
 server1 ansible_host=192.168.1.10
 server2 ansible_host=192.168.1.11
 ```
 
-Replace `server1`, `server2`, `192.168.1.10`, and `192.168.1.11` with your actual server hostnames or IP addresses.
+Save this file in a directory of your choice. For example, you could create a directory named `inventory` and save the `hosts.ini` file inside it.
 
-### Step 4: Configure Ansible Configuration File (Optional)
+### Step 4: Install SSH Server
 
-The Ansible configuration file (`ansible.cfg`) allows you to configure various settings. You can leave this file as default or customize it according to your needs. By default, this file is not mandatory for running Ansible:
+If the SSH server is not already installed on your Ansible control node, you can install it using the following command:
 
 ```bash
-sudo nano /etc/ansible/ansible.cfg
+sudo apt install openssh-server
 ```
 
-Here are some common settings that you might want to configure:
+### Step 5: Configure SSH Password Authentication
+
+By default, SSH password authentication should be enabled. If it's not, you can enable it by editing the SSH configuration file:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Ensure the following configuration options are set:
+
+```bash
+PasswordAuthentication yes
+```
+
+Save the file and then restart the SSH service:
+
+```bash
+sudo systemctl restart ssh
+```
+
+### Step 6: SSH Password Authentication for Managed Hosts
+
+Ensure that password authentication is enabled on the managed hosts as well. Edit the SSH configuration file on each managed host:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Ensure the following configuration options are set:
+
+```bash
+PasswordAuthentication yes
+```
+
+Save the file and then restart the SSH service on each managed host:
+
+```bash
+sudo systemctl restart ssh
+```
+
+### Step 7: Test SSH Connection
+
+Test the SSH connection to ensure that Ansible can communicate with the managed hosts using password authentication:
+
+```bash
+ansible all -m ping -i /path/to/your/inventory/hosts.ini -u username -k
+```
+
+Replace `/path/to/your/inventory/hosts.ini` with the actual path to your inventory file, `username` with your username on the managed hosts, and `-k` prompts for the SSH password.
+
+### Step 8: Ansible Configuration File (Optional)
+
+Ansible uses a configuration file (`ansible.cfg`) to control its behavior. While most settings have sensible defaults, you may want to customize some settings based on your requirements.
+
+Create an `ansible.cfg` file in the same directory as your inventory file or in the `/etc/ansible/` directory:
 
 ```ini
 [defaults]
-inventory = /etc/ansible/hosts
-remote_user = your_remote_user
-private_key_file = /path/to/your/private/key
+inventory = /path/to/your/inventory/hosts.ini
+remote_user = username
+ask_pass = True
 ```
 
-Replace `your_remote_user` and `/path/to/your/private/key` with your actual remote user and private key file path.
+Replace `/path/to/your/inventory/hosts.ini` with the actual path to your inventory file and `username` with your username on the managed hosts.
 
-### Step 5: Testing Ansible
+### Step 9: Verify Configuration
 
-Now that Ansible is installed and configured, you can test it by running an ad-hoc command against your managed hosts. For example, to check connectivity:
+Test your Ansible setup by running a simple command against all hosts in your inventory:
 
 ```bash
-ansible all -m ping
+ansible all -m command -a "hostname" -i /path/to/your/inventory/hosts.ini -u username -k
 ```
 
-This should return successful pings from your managed hosts.
 
+You have now installed and configured an Ansible control node on Ubuntu, using passwordless or password-based authentication for SSH. You can use this control node to manage multiple hosts efficiently using Ansible playbooks and modules. Make sure to explore more advanced Ansible features and practices to streamline your infrastructure management tasks.
 
